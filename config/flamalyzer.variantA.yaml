@@ -1,0 +1,18 @@
+# this is an example config
+debug: false
+
+# Config of the Dingo-Analyzer
+dingoAnalyzer:
+  checkPointerReceiver: false
+  checkStrictTagsAndFunctions: false
+  checkCorrectInterfaceToInstanceBinding: false
+
+# Config of the DependencyConventions-Analyzer
+architectureAnalyzer:
+  entryPaths: []
+  checkDependencyConventions: true
+  groups:
+    infrastructure: ["infrastructure", "interfaces", "application", "domain"]
+    interfaces: ["interfaces", "application", "domain"]
+    application: ["application", "domain"]
+    domain: ["domain"]

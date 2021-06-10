@@ -1,0 +1,12 @@
+# this is an example config
+
+debug: false
+
+architectureAnalyzer:
+  entryPaths: []
+  checkDependencyConventions: false
+
+dingoAnalyzer:
+  checkPointerReceiver: true
+  checkStrictTagsAndFunctions: true
+  checkCorrectInterfaceToInstanceBinding: true
