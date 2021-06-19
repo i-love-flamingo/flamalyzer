@@ -1,6 +1,7 @@
 package bind
 
 import (
+	"fmt"
 	"go/ast"
 	"go/types"
 
@@ -77,18 +78,30 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 				if ok := bindCalls[firstFunc.Name()] && toCalls[secondFunc.Name()]; ok {
 					bindType := pass.TypesInfo.Types[firstCall.Args[0]].Type
 					toType := pass.TypesInfo.Types[secondCall.Args[0]].Type
-					iface := bindType.(*types.Pointer).Elem().(*types.Named).Underlying().(*types.Interface)
-
 					// If struct literal is used, get the toType into the correct format
 					_, ok := toType.(*types.Named)
 					if ok {
 						toType = types.NewPointer(toType)
 					}
-					if !types.Implements(toType, iface) {
-						message := "Incorrect Binding! `" + toType.Underlying().String()[1:] + "` must implement Interface `" + bindType.Underlying().String()[1:] + "`"
-						flanalysis.Report(pass, message, secondCall.Args[0])
+					switch what := bindType.(*types.Pointer).Elem().(*types.Named).Underlying().(type) {
+					case *types.Interface:
+						// in case of interface to interface binding
+						to := toType.(*types.Pointer).Elem().Underlying()
+						if !types.Implements(toType, what) && !types.Implements(to, what) {
+							message := fmt.Sprintf("Incorrect Binding! %q must implement Interface %q", toType.Underlying().String(), bindType.Underlying().String())
+							flanalysis.Report(pass, message, secondCall.Args[0])
+						}
+					case *types.Signature:
+						if !types.AssignableTo(toType, what) {
+							message := fmt.Sprintf("Incorrect Binding! %q must have Signature of %q", toType.String(), what.String())
+							flanalysis.Report(pass, message, secondCall.Args[0])
+						}
+					default:
+						if !types.AssignableTo(toType, bindType) {
+							message := fmt.Sprintf("Incorrect Binding! %q must be assignable to %q", toType.String(), bindType.String())
+							flanalysis.Report(pass, message, secondCall.Args[0])
+						}
 					}
-
 				}
 			}
 		}
