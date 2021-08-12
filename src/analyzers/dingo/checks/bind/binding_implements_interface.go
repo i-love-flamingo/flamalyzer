@@ -66,7 +66,7 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 				if firstFunc == nil || secondFunc == nil {
 					continue
 				}
-
+				// Todo maybe make dingoPkgPath more robust since we use it at two places now
 				// Make sure we are using "flamingo.me/dingo"
 				if firstFunc.Pkg().Path() != dingoPkgPath || secondFunc.Pkg().Path() != dingoPkgPath {
 					continue
@@ -74,6 +74,7 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 
 				// Make sure the called function is one that "binds" something "to" something
 				bindCalls := map[string]bool{"Bind": true, "BindMulti": true, "BindMap": true}
+				// TODO probably check for "toProvider" too?
 				toCalls := map[string]bool{"To": true, "ToInstance": true}
 				if ok := bindCalls[firstFunc.Name()] && toCalls[secondFunc.Name()]; ok {
 					bindType := pass.TypesInfo.Types[firstCall.Args[0]].Type

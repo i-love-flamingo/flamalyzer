@@ -1,5 +1,7 @@
 package proper_inject_tags
 
+import "flamingo.me/dingo"
+// TODO Empty Inject Tags without "" are not tested e.g X string `inject:`
 type A struct {
 	X string `inject:""` // want `Empty Inject-Tags are not allowed! Add more specific naming or use the Inject function for non configuration injections`
 }
@@ -18,9 +20,15 @@ type Mapper interface {
 }
 
 type D struct {
-	servie  *A
+	service  *A
 	isDebug bool
 	mapper  Mapper
+}
+
+
+
+type E struct {
+	service  *A `inject:"this:is:fun"` // this is allowed since this type referenced in the configure method as provider
 }
 
 type specialInjectCfg struct {
@@ -32,6 +40,10 @@ type Z struct {
 	X bool `inject:""` // want `Empty Inject-Tags are not allowed! Add more specific naming or use the Inject function for non configuration injections`
 }
 
+func providerFunc(e *E) interface{}{
+	return new(interface{})
+}
+
 func (d *D) Inject(
 	service *A,
 	z *Z,
@@ -41,10 +53,17 @@ func (d *D) Inject(
 	},
 ) *D {
 
-	d.servie = service
+	d.service = service
 	if cfg != nil {
 		d.isDebug = cfg.IsDebug
 	}
 
 	return d
+}
+
+
+func (d *D) Configure(injector *dingo.Injector) bool{
+	injector.Bind(new(interface{})).ToProvider(providerFunc)
+
+	return true
 }
