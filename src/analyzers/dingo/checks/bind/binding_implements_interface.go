@@ -1,6 +1,7 @@
 package bind
 
 import (
+	"flamingo.me/flamalyzer/src/analyzers/dingo/globals"
 	"fmt"
 	"go/ast"
 	"go/types"
@@ -66,9 +67,8 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 				if firstFunc == nil || secondFunc == nil {
 					continue
 				}
-				// Todo maybe make dingoPkgPath more robust since we use it at two places now
 				// Make sure we are using "flamingo.me/dingo"
-				if firstFunc.Pkg().Path() != dingoPkgPath || secondFunc.Pkg().Path() != dingoPkgPath {
+				if firstFunc.Pkg().Path() != globals.DingoPkgPath || secondFunc.Pkg().Path() != globals.DingoPkgPath {
 					continue
 				}
 
