@@ -1,6 +1,7 @@
 package bind
 
 import (
+	"flamingo.me/flamalyzer/src/analyzers/dingo/checks/helper"
 	"flamingo.me/flamalyzer/src/analyzers/dingo/globals"
 	"fmt"
 	"go/ast"
@@ -8,8 +9,6 @@ import (
 
 	flanalysis "flamingo.me/flamalyzer/src/flamalyzer/analysis"
 	"golang.org/x/tools/go/analysis"
-	"golang.org/x/tools/go/analysis/passes/inspect"
-	"golang.org/x/tools/go/ast/inspector"
 	"golang.org/x/tools/go/types/typeutil"
 )
 
@@ -18,34 +17,17 @@ var Analyzer = &analysis.Analyzer{
 	Name:     "checkCorrectInterfaceToInstanceBinding",
 	Doc:      "check if the Binding of an Interface to an Implementation with the Bind() -Function is possible",
 	Run:      run,
-	Requires: []*analysis.Analyzer{inspect.Analyzer},
+	Requires: []*analysis.Analyzer{helper.ConfigureDeclAnalyzer},
 }
 
 // This function checks if the given instance can be bound to the interface by the bind functions of Dingo.
 // example: injector.Bind(someInterface).To(mustImplementSomeInterface)
 func run(pass *analysis.Pass) (interface{}, error) {
-	input := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
-	nodeFilter := []ast.Node{
-		(*ast.FuncDecl)(nil),
-	}
+	configureFunctions := pass.ResultOf[helper.ConfigureDeclAnalyzer].([]*ast.FuncDecl)
 
-	checkFunction := func(n ast.Node) {
-		funcdecl := n.(*ast.FuncDecl)
-
-		// Make sure we check functions with "*dingo.Injector" in the parameters
-		for _, param := range funcdecl.Type.Params.List {
-			if param, ok := param.Type.(*ast.StarExpr); ok {
-				if param, ok := param.X.(*ast.SelectorExpr); ok {
-					paramType := pass.TypesInfo.ObjectOf(param.Sel)
-					// check if param is type dingo.Injector
-					if paramType.Pkg().Path() == globals.DingoPkgPath && paramType.Name() == "Injector" {
-						checkBlockStatmenetForCorrectBindings(funcdecl.Body, pass)
-					}
-				}
-			}
-		}
+	for _, f := range configureFunctions {
+		checkBlockStatmenetForCorrectBindings(f.Body, pass)
 	}
-	input.Preorder(nodeFilter, checkFunction)
 	return nil, nil
 }
 
