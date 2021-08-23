@@ -20,9 +20,7 @@ var Analyzer = &analysis.Analyzer{
 	Run:      run,
 	Requires: []*analysis.Analyzer{inspect.Analyzer},
 }
-
 var dingoTypeDecl = "dingo.Injector"
-var dingoPkgPath = "flamingo.me/dingo"
 
 // This function checks if the given instance can be bound to the interface by the bind functions of Dingo.
 // example: injector.Bind(someInterface).To(mustImplementSomeInterface)

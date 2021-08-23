@@ -18,7 +18,7 @@ import (
 // inject tags should be used for config injection only, otherwise an inject method should be used.
 // This means:
 // - No empty inject tags
-// - Inject tags can be defined in the Inject-Function or must be referenced if defined outside. Exception: Those Types are used in a Provider-Function
+// - Inject tags can be defined in the Inject-Function or must be referenced if defined outside. Exception: Those types are used in a Provider-Function
 // - They must be declared in the same package as the Inject-Function
 
 var TagAnalyzer = &analysis.Analyzer{
