@@ -20,7 +20,6 @@ var Analyzer = &analysis.Analyzer{
 	Run:      run,
 	Requires: []*analysis.Analyzer{inspect.Analyzer},
 }
-var dingoTypeDecl = "dingo.Injector"
 
 // This function checks if the given instance can be bound to the interface by the bind functions of Dingo.
 // example: injector.Bind(someInterface).To(mustImplementSomeInterface)
@@ -37,7 +36,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		for _, param := range funcdecl.Type.Params.List {
 			if param, ok := param.Type.(*ast.StarExpr); ok {
 				if param, ok := param.X.(*ast.SelectorExpr); ok {
-					if isSelectorExprTypeOf(param, dingoTypeDecl) {
+					paramType := pass.TypesInfo.ObjectOf(param.Sel)
+					// check if param is type dingo.Injector
+					if paramType.Pkg().Path() == globals.DingoPkgPath && paramType.Name() == "Injector" {
 						checkBlockStatmenetForCorrectBindings(funcdecl.Body, pass)
 					}
 				}
@@ -105,16 +106,4 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 			}
 		}
 	}
-}
-
-// checks if a given selectorExpression matches the given type (as string)
-// example: "dingo.Injector"
-func isSelectorExprTypeOf(expr *ast.SelectorExpr, typ string) bool {
-	if n, ok := expr.X.(*ast.Ident); ok {
-		fullName := n.Name + "." + expr.Sel.Name
-		if fullName == typ {
-			return true
-		}
-	}
-	return false
 }
