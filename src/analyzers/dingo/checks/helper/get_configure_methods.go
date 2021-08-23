@@ -20,7 +20,7 @@ var ConfigureDeclAnalyzer = &analysis.Analyzer{
 }
 
 // If a function is a "Configure" function it must be bound to a pointer receiver
-// this function simply returns a List of all Configure-Functions found in the AST
+// this function simply returns a List of all Configure-Functions found in the AST, including ones with different names than "Configure" (needed if delegated)
 func runConfigureDeclAnalyzer(pass *analysis.Pass) (interface{}, error) {
 	input := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 	nodeFilter := []ast.Node{

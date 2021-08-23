@@ -5,6 +5,7 @@ import (
 	"flamingo.me/dingo"
 	"flamingo.me/flamalyzer/src/analyzers"
 	"flamingo.me/flamalyzer/src/analyzers/dingo/checks/bind"
+	"flamingo.me/flamalyzer/src/analyzers/dingo/checks/configure"
 	"flamingo.me/flamalyzer/src/analyzers/dingo/checks/inject"
 	"flamingo.me/flamalyzer/src/flamalyzer/configuration"
 	"golang.org/x/tools/go/analysis"
@@ -61,5 +62,7 @@ func (d *Analyzer) ChecksToExecute() []*analysis.Analyzer {
 	if d.props.CheckCorrectInterfaceToInstanceBinding {
 		d.checks = append(d.checks, bind.Analyzer)
 	}
+	// TODO add to config etc
+	d.checks = append(d.checks, configure.FunctionHasReceiver)
 	return d.checks
 }

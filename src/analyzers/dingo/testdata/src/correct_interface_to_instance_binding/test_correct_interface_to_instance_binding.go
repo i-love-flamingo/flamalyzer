@@ -90,7 +90,7 @@ func (*D) functionName(injector *dingo.Injector, otherType *otherType) {
 	injector.Bind(new(I)).ToInstance(new(A))
 	injector.Bind(new(I)).ToInstance(new(B)) // want "Incorrect Binding! \"\\*correct_interface_to_instance_binding.B\" must implement Interface \"\\*correct_interface_to_instance_binding.I\""
 }
-
+// TODO Add tests for configure_has_receiver and probably remove this one
 // check if it works in functions that have no Receiver
 func noReceiverFunc(injector *dingo.Injector, otherType *otherType) {
 	injector.Bind(new(I)).To(new(A))

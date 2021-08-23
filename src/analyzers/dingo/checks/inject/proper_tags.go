@@ -1,7 +1,7 @@
 package inject
 
 import (
-	"flamingo.me/flamalyzer/src/analyzers/dingo/checks/helper"
+	"flamingo.me/flamalyzer/src/analyzers/dingo/checks/configure"
 	"flamingo.me/flamalyzer/src/analyzers/dingo/globals"
 	ast "go/ast"
 	"go/types"
@@ -25,7 +25,7 @@ var TagAnalyzer = &analysis.Analyzer{
 	Name:     "checkProperInjectTags",
 	Doc:      "check if convention of using inject tags is respected",
 	Run:      runTagAnalyzer,
-	Requires: []*analysis.Analyzer{inspect.Analyzer, ReceiverAnalyzer, helper.ConfigureDeclAnalyzer},
+	Requires: []*analysis.Analyzer{inspect.Analyzer, ReceiverAnalyzer, configure.FunctionHasReceiver},
 }
 
 type structObject struct {
@@ -43,7 +43,7 @@ func runTagAnalyzer(pass *analysis.Pass) (interface{}, error) {
 	// Using the results of the boundToReference.TagAnalyzer who provides all Inject-Functions
 	injectFunctions := pass.ResultOf[ReceiverAnalyzer].([]*ast.FuncDecl)
 	// Get all configureFunctions
-	configureFunctions := pass.ResultOf[helper.ConfigureDeclAnalyzer].([]*ast.FuncDecl)
+	configureFunctions := pass.ResultOf[configure.FunctionHasReceiver].([]*ast.FuncDecl)
 
 	nodeFilter := []ast.Node{
 		(*ast.TypeSpec)(nil),
