@@ -1,7 +1,7 @@
 package bind
 
 import (
-	"flamingo.me/flamalyzer/src/analyzers/dingo/checks/configure"
+	"flamingo.me/flamalyzer/src/analyzers/dingo/checks/helper"
 	"flamingo.me/flamalyzer/src/analyzers/dingo/globals"
 	"fmt"
 	"go/ast"
@@ -14,16 +14,16 @@ import (
 
 // Analyzer checks if a dingo binding to an interface really implements the interface
 var Analyzer = &analysis.Analyzer{
-	Name:     "checkCorrectInterfaceToInstanceBinding",
+	Name:     "checkBindingImplementsInterface",
 	Doc:      "check if the Binding of an Interface to an Implementation with the Bind() -Function is possible",
 	Run:      run,
-	Requires: []*analysis.Analyzer{configure.FunctionHasReceiver},
+	Requires: []*analysis.Analyzer{helper.ConfigureDeclAnalyzer},
 }
 
 // This function checks if the given instance can be bound to the interface by the bind functions of Dingo.
 // example: injector.Bind(someInterface).To(mustImplementSomeInterface)
 func run(pass *analysis.Pass) (interface{}, error) {
-	configureFunctions := pass.ResultOf[configure.FunctionHasReceiver].([]*ast.FuncDecl)
+	configureFunctions := pass.ResultOf[helper.ConfigureDeclAnalyzer].([]*ast.FuncDecl)
 
 	for _, f := range configureFunctions {
 		checkBlockStatmenetForCorrectBindings(f.Body, pass)

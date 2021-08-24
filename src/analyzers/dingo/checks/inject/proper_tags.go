@@ -22,10 +22,10 @@ import (
 // - They must be declared in the same package as the Inject-Function
 
 var TagAnalyzer = &analysis.Analyzer{
-	Name:     "checkProperInjectTags",
+	Name:     "checkStrictTagsAndFunctions",
 	Doc:      "check if convention of using inject tags is respected",
 	Run:      runTagAnalyzer,
-	Requires: []*analysis.Analyzer{inspect.Analyzer, ReceiverAnalyzer, configure.FunctionHasReceiver},
+	Requires: []*analysis.Analyzer{inspect.Analyzer, ReceiverAnalyzer, configure.ReceiverAnalyzer},
 }
 
 type structObject struct {
@@ -43,7 +43,7 @@ func runTagAnalyzer(pass *analysis.Pass) (interface{}, error) {
 	// Using the results of the boundToReference.TagAnalyzer who provides all Inject-Functions
 	injectFunctions := pass.ResultOf[ReceiverAnalyzer].([]*ast.FuncDecl)
 	// Get all configureFunctions
-	configureFunctions := pass.ResultOf[configure.FunctionHasReceiver].([]*ast.FuncDecl)
+	configureFunctions := pass.ResultOf[configure.ReceiverAnalyzer].([]*ast.FuncDecl)
 
 	nodeFilter := []ast.Node{
 		(*ast.TypeSpec)(nil),
