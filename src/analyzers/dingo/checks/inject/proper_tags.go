@@ -43,7 +43,7 @@ func runTagAnalyzer(pass *analysis.Pass) (interface{}, error) {
 	// Using the results of the boundToReference.TagAnalyzer who provides all Inject-Functions
 	injectFunctions := pass.ResultOf[ReceiverAnalyzer].([]*ast.FuncDecl)
 	// Get all configureFunctions
-	configureFunctions := pass.ResultOf[configure.ReceiverAnalyzer].([]*ast.FuncDecl)
+	configureFunctions := pass.ResultOf[configure.ReceiverAnalyzer].(*configure.FunctionDeclarations).GetValid()
 
 	nodeFilter := []ast.Node{
 		(*ast.TypeSpec)(nil),
