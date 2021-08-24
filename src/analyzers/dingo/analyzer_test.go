@@ -1,6 +1,7 @@
 package dingo_test
 
 import (
+	"flamingo.me/flamalyzer/src/analyzers/dingo/checks/configure"
 	"testing"
 
 	"flamingo.me/flamalyzer/src/analyzers/dingo/checks/bind"
@@ -21,4 +22,9 @@ func TestBoundToReference(t *testing.T) {
 func TestCorrectInterfaceToInstanceBinding(t *testing.T) {
 	analysis := bind.Analyzer
 	analysistest.Run(t, analysistest.TestData(), analysis, "correct_interface_to_instance_binding")
+}
+
+func TestConfigureHasReceiver(t *testing.T) {
+	analysis := configure.ReceiverAnalyzer
+	analysistest.Run(t, analysistest.TestData(), analysis, "configure_has_receiver")
 }
