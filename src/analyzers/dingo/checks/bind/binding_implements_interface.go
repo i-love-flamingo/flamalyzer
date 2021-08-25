@@ -19,6 +19,18 @@ var Analyzer = &analysis.Analyzer{
 	Run:      run,
 	Requires: []*analysis.Analyzer{configure.ReceiverAnalyzer},
 }
+var allBindings []Bindings
+
+type Bindings struct {
+	bindCall *ast.CallExpr
+	toCall   *ast.CallExpr
+	bindFunc types.Object
+	toFunc   types.Object
+}
+
+func (c *Bindings) getAllBindings() *Bindings{
+	return c
+}
 
 // This function checks if the given instance can be bound to the interface by the bind functions of Dingo.
 // example: injector.Bind(someInterface).To(mustImplementSomeInterface)
@@ -28,6 +40,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	for _, f := range configureFunctions {
 		checkBlockStatmenetForCorrectBindings(f.Body, pass)
 	}
+	fmt.Println(allBindings)
 	return nil, nil
 }
 
@@ -37,17 +50,13 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 		if exp, ok := stmt.(*ast.ExprStmt); ok {
 			if call, ok := exp.X.(*ast.CallExpr); ok {
 
-				// make sure we have a concatenated function
-
-				firstCallold, _ := call.Fun.(*ast.SelectorExpr).X.(*ast.CallExpr)
-				_ = firstCallold
 				var bindCall interface{}
 				var toCall interface{}
-				// var secondType interface{}
 				var bindFunc types.Object
 				var toFunc types.Object
 
 				switch node := call.Fun.(*ast.SelectorExpr).X.(type) {
+				// if it is a concatenated binding
 				case *ast.CallExpr:
 					bindCall = node
 					toCall = call
@@ -57,6 +66,7 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 					if bindFunc.Pkg().Path() != globals.DingoPkgPath || toFunc.Pkg().Path() != globals.DingoPkgPath {
 						continue
 					}
+				// if it is a splitted binding
 				case *ast.Ident:
 					bindCall = node.Obj.Decl.(*ast.AssignStmt).Rhs[0].(*ast.CallExpr)
 					toCall = call.Args[0].(*ast.CallExpr)
@@ -73,6 +83,8 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 				if bindFunc == nil || toFunc == nil {
 					continue
 				}
+				// Now we have potential function bindings add them to stack if they have the correct name (BindCalls & toCalls)
+				createReturnStruct(bindCall.(*ast.CallExpr), toCall.(*ast.CallExpr),bindFunc, toFunc)
 
 				// Make sure the called function is one that "binds" something "to" something
 				bindCalls := map[string]bool{"Bind": true, "BindMulti": true, "BindMap": true}
@@ -110,4 +122,20 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 
 		}
 	}
+}
+
+func createReturnStruct(bindCall *ast.CallExpr, toCall *ast.CallExpr, bindFunc types.Object, toFunc types.Object) {
+	bindCalls := map[string]bool{"Bind": true, "BindMulti": true, "BindMap": true}
+	toCalls := map[string]bool{"To": true, "ToInstance": true, "ToProvider": true}
+
+	if ok := bindCalls[bindFunc.Name()] && toCalls[toFunc.Name()]; ok {
+		var binding = Bindings{
+			bindCall: bindCall,
+			toCall:   toCall,
+			bindFunc: bindFunc,
+			toFunc:   toFunc,
+		}
+		allBindings = append(allBindings, binding)
+	}
+
 }
