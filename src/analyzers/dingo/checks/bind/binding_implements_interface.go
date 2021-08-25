@@ -38,18 +38,39 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 			if call, ok := exp.X.(*ast.CallExpr); ok {
 
 				// make sure we have a concatenated function
-				firstCall, _ := call.Fun.(*ast.SelectorExpr).X.(*ast.CallExpr)
-				secondCall := call
-				if firstCall == nil {
+
+				firstCallold, _ := call.Fun.(*ast.SelectorExpr).X.(*ast.CallExpr)
+				_ = firstCallold
+				var bindCall interface{}
+				var toCall interface{}
+				// var secondType interface{}
+				var bindFunc types.Object
+				var toFunc types.Object
+
+				switch node := call.Fun.(*ast.SelectorExpr).X.(type) {
+				case *ast.CallExpr:
+					bindCall = node
+					toCall = call
+					bindFunc, _ = typeutil.Callee(pass.TypesInfo, bindCall.(*ast.CallExpr)).(*types.Func)
+					toFunc, _ = typeutil.Callee(pass.TypesInfo, toCall.(*ast.CallExpr)).(*types.Func)
+					// Make sure we are using "flamingo.me/dingo"
+					if bindFunc.Pkg().Path() != globals.DingoPkgPath || toFunc.Pkg().Path() != globals.DingoPkgPath {
+						continue
+					}
+				case *ast.Ident:
+					bindCall = node.Obj.Decl.(*ast.AssignStmt).Rhs[0].(*ast.CallExpr)
+					toCall = call.Args[0].(*ast.CallExpr)
+					bindFunc, _ = typeutil.Callee(pass.TypesInfo, bindCall.(*ast.CallExpr)).(*types.Func)
+					toFunc, _ = pass.TypesInfo.ObjectOf(call.Fun.(*ast.SelectorExpr).Sel).(types.Object)
+					// Make sure we are using "flamingo.me/dingo"
+					if bindFunc.Pkg().Path() != globals.DingoPkgPath {
+						continue
+					}
+				default:
 					continue
 				}
-				firstFunc, _ := typeutil.Callee(pass.TypesInfo, firstCall).(*types.Func)
-				secondFunc, _ := typeutil.Callee(pass.TypesInfo, secondCall).(*types.Func)
-				if firstFunc == nil || secondFunc == nil {
-					continue
-				}
-				// Make sure we are using "flamingo.me/dingo"
-				if firstFunc.Pkg().Path() != globals.DingoPkgPath || secondFunc.Pkg().Path() != globals.DingoPkgPath {
+
+				if bindFunc == nil || toFunc == nil {
 					continue
 				}
 
@@ -57,9 +78,9 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 				bindCalls := map[string]bool{"Bind": true, "BindMulti": true, "BindMap": true}
 				// TODO probably check for "toProvider" too?
 				toCalls := map[string]bool{"To": true, "ToInstance": true}
-				if ok := bindCalls[firstFunc.Name()] && toCalls[secondFunc.Name()]; ok {
-					bindType := pass.TypesInfo.Types[firstCall.Args[0]].Type
-					toType := pass.TypesInfo.Types[secondCall.Args[0]].Type
+				if ok := bindCalls[bindFunc.Name()] && toCalls[toFunc.Name()]; ok {
+					bindType := pass.TypesInfo.Types[bindCall.(*ast.CallExpr).Args[0]].Type
+					toType := pass.TypesInfo.Types[toCall.(*ast.CallExpr).Args[0]].Type
 					// If struct literal is used, get the toType into the correct format
 					_, ok := toType.(*types.Named)
 					if ok {
@@ -71,21 +92,22 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 						to := toType.(*types.Pointer).Elem().Underlying()
 						if !types.Implements(toType, what) && !types.Implements(to, what) {
 							message := fmt.Sprintf("Incorrect Binding! %q must implement Interface %q", toType.Underlying().String(), bindType.Underlying().String())
-							flanalysis.Report(pass, message, secondCall.Args[0])
+							flanalysis.Report(pass, message, toCall.(*ast.CallExpr).Args[0])
 						}
 					case *types.Signature:
 						if !types.AssignableTo(toType, what) {
 							message := fmt.Sprintf("Incorrect Binding! %q must have Signature of %q", toType.String(), what.String())
-							flanalysis.Report(pass, message, secondCall.Args[0])
+							flanalysis.Report(pass, message, toCall.(*ast.CallExpr).Args[0])
 						}
 					default:
 						if !types.AssignableTo(toType, bindType) {
 							message := fmt.Sprintf("Incorrect Binding! %q must be assignable to %q", toType.String(), bindType.String())
-							flanalysis.Report(pass, message, secondCall.Args[0])
+							flanalysis.Report(pass, message, toCall.(*ast.CallExpr).Args[0])
 						}
 					}
 				}
 			}
+
 		}
 	}
 }
