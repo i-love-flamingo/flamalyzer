@@ -37,6 +37,10 @@ type G struct {
 	service *A `inject:"these:should:also:be:allowed:since:referenced:in:provider:2"` // this is allowed since this type referenced in the configure method as provider
 }
 
+type H struct {
+	service *A `inject:"these:should:also:be:allowed:since:referenced:in:provider:3"` // this is allowed since this type referenced in the configure method as provider
+}
+
 type specialInjectCfg struct {
 	// this is allowed because it is used as argument type in an inject function
 	IsDebug bool `inject:"config:isDebug"`
@@ -55,6 +59,10 @@ func (d *D) providerFuncWithSelector(e *E, f *F) interface{} {
 }
 
 func providerFuncBoundToMap(f *G) interface{} {
+	return new(interface{})
+}
+
+func providerSplittedBinding(f *H) interface{} {
 	return new(interface{})
 }
 
@@ -79,5 +87,7 @@ func (d *D) Configure(injector *dingo.Injector) bool {
 	injector.Bind(new(interface{})).ToProvider(providerFunc)
 	injector.BindMulti(new(interface{})).ToProvider(d.providerFuncWithSelector)
 	injector.BindMap(new(interface{}), "map").ToProvider(providerFuncBoundToMap)
+	split := injector.Bind(new(interface{}))
+	split.ToProvider(providerSplittedBinding)
 	return true
 }
