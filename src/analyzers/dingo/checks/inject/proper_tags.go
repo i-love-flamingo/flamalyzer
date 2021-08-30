@@ -71,9 +71,9 @@ func runTagAnalyzer(pass *analysis.Pass) (interface{}, error) {
 // Tag referenced as Parameter of a Provider? (if Provider used in Configure function)
 func isTypeUsedAsProvider(pass *analysis.Pass, structType *ast.StructType, bindings bind.DingoBindings) bool {
 	for _, b := range bindings {
-		switch what := b.(type) {
+		switch bt := b.(type) {
 		case bind.DingoInstanceBinding:
-			binding := what
+			binding := bt
 			toProviderFunc := pass.TypesInfo.Types[binding.ToCall.Args[0]].Type
 			// Make sure the called function is one that "binds" something to "ToProvider"
 			if ok := bindCalls[binding.BindFunc.Name()] && toCalls[binding.ToFunc.Name()]; ok {
@@ -91,7 +91,7 @@ func isTypeUsedAsProvider(pass *analysis.Pass, structType *ast.StructType, bindi
 			}
 
 		case bind.DingoProviderBinding:
-			binding := what
+			binding := bt
 			toProviderFunc := pass.TypesInfo.ObjectOf(binding.ToCall).Type()
 
 			// TODO more or less same code than above....
