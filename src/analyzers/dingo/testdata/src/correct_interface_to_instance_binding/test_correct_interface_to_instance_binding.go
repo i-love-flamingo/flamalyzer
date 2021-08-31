@@ -81,6 +81,15 @@ func (*C) Configure(injector *dingo.Injector, otherType *otherType) {
 	// check uncommon bind arguments
 	injector.Bind((*I)(nil)).To(new(A))
 	injector.Bind((*I)(nil)).To(new(B)) // want "Incorrect Binding! \"\\*correct_interface_to_instance_binding.B\" must implement Interface \"\\*correct_interface_to_instance_binding.I\""
+
+	// check splitted bindings
+	anInjector := injector.Bind(new(I))
+	anInjector.To(new(A))
+	anotherInjector := injector.Bind(new(I))
+	anotherInjector.To(new(B)) // want "Incorrect Binding! \"\\*correct_interface_to_instance_binding.B\" must implement Interface \"\\*correct_interface_to_instance_binding.I\""
+	superSplit := injector.Bind(new(I))
+	superSplitNoTwo := superSplit
+	superSplitNoTwo.To(new(A))
 }
 
 // check if it works in other functions than "configure"

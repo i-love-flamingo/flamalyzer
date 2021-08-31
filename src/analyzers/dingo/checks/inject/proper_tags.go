@@ -98,7 +98,7 @@ func isTypeUsedAsProvider(pass *analysis.Pass, structType *ast.StructType, bindi
 			//Make sure the called function is one that "binds" something to "ToProvider"
 			if ok := bindCalls[binding.BindFunc.Name()] && toCalls[binding.ToFunc.Name()]; ok {
 				for i := 0; i < toProviderFunc.(*types.Signature).Params().Len(); i++ {
-					// TODO What if param is not a pointer?
+					// TODO What if param is not a pointer? -> doesn't make sense I guess
 					// if param is a pointer
 					if _, ok := toProviderFunc.(*types.Signature).Params().At(i).Type().(*types.Pointer); ok {
 						providerParameter := toProviderFunc.(*types.Signature).Params().At(i).Type().(*types.Pointer).Elem().Underlying()

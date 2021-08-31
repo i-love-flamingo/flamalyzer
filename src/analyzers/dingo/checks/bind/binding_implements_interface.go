@@ -86,10 +86,19 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 					toCall, ok = call.Args[0].(*ast.CallExpr)
 					// !ok -> splitted provider binding
 					if !ok {
-						toCall = call.Args[0].(*ast.Ident)
+						// e.g something.ToProvider(Provider)
+						if _, isIdent := call.Args[0].(*ast.Ident); isIdent {
+							toCall = call.Args[0].(*ast.Ident)
+
+						// if selector expression e.g something.ToProvider(selector.Provider)
+						} else if _, isSelectorExpr := call.Args[0].(*ast.SelectorExpr); isSelectorExpr {
+							toCall = call.Args[0].(*ast.SelectorExpr).Sel
+						} else{
+							continue
+						}
 					}
-					// TODO 1) toProvider: splitted bindings berücksichtigen
-					// TODO 2) toProvider: selector expression berücksichtigen
+
+					// TODO toProvider and bindings: selector expression Referenzierungen außerhalb des Packages
 					bindFunc, _ = typeutil.Callee(pass.TypesInfo, bindCall.(*ast.CallExpr)).(*types.Func)
 					toFunc, _ = pass.TypesInfo.ObjectOf(call.Fun.(*ast.SelectorExpr).Sel).(types.Object)
 

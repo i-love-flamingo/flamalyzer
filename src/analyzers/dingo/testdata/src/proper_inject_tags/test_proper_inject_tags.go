@@ -66,6 +66,17 @@ func providerSplittedBinding(f *H) interface{} {
 	return new(interface{})
 }
 
+type selectorTest struct {
+	X bool `inject:"selector:test"`
+}
+
+type selectorTestStruct struct {
+}
+
+func (b selectorTestStruct) selectorProvider(e *selectorTest) interface{} {
+	return new(interface{})
+}
+
 func (d *D) Inject(
 	service *A,
 	z *Z,
@@ -87,7 +98,10 @@ func (d *D) Configure(injector *dingo.Injector) bool {
 	injector.Bind(new(interface{})).ToProvider(providerFunc)
 	injector.BindMulti(new(interface{})).ToProvider(d.providerFuncWithSelector)
 	injector.BindMap(new(interface{}), "map").ToProvider(providerFuncBoundToMap)
-	split := injector.Bind(new(interface{}))
-	split.ToProvider(providerSplittedBinding)
+	// Test splitted Provider-Bindings
+	splittedBinding := injector.Bind(new(interface{}))
+	splittedBinding.ToProvider(providerSplittedBinding)
+	// Test SelectorExpression Provider-Bindings
+	injector.Bind(new(interface{})).ToProvider(selectorTestStruct.selectorProvider)
 	return true
 }
