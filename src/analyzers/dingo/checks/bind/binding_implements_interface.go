@@ -77,14 +77,12 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 					}
 				// if it is a splitted binding
 				case *ast.Ident:
-					bindCall, ok := node.Obj.Decl.(*ast.AssignStmt).Rhs[0].(*ast.CallExpr)
+					bindCall, ok = node.Obj.Decl.(*ast.AssignStmt).Rhs[0].(*ast.CallExpr)
 					evoNode := node
 					for !ok {
 						bindCall, ok = evoNode.Obj.Decl.(*ast.AssignStmt).Rhs[0].(*ast.Ident).Obj.Decl.(*ast.AssignStmt).Rhs[0].(*ast.CallExpr)
 						evoNode, _ = evoNode.Obj.Decl.(*ast.AssignStmt).Rhs[0].(*ast.Ident)
 					}
-					fun := bindCall
-					_ = fun
 					toCall, ok = call.Args[0].(*ast.CallExpr)
 					// !ok -> splitted provider binding
 					if !ok {
@@ -92,7 +90,7 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 					}
 					// TODO 1) toProvider: splitted bindings berücksichtigen
 					// TODO 2) toProvider: selector expression berücksichtigen
-					bindFunc, _ = typeutil.Callee(pass.TypesInfo, bindCall).(*types.Func)
+					bindFunc, _ = typeutil.Callee(pass.TypesInfo, bindCall.(*ast.CallExpr)).(*types.Func)
 					toFunc, _ = pass.TypesInfo.ObjectOf(call.Fun.(*ast.SelectorExpr).Sel).(types.Object)
 
 					// Make sure we are using "flamingo.me/dingo"
