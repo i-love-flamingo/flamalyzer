@@ -75,7 +75,7 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 					if bindFunc.Pkg().Path() != globals.DingoPkgPath || toFunc.Pkg().Path() != globals.DingoPkgPath {
 						continue
 					}
-				// if it is a splitted binding
+				// if it is a split binding
 				case *ast.Ident:
 					bindCall, ok = node.Obj.Decl.(*ast.AssignStmt).Rhs[0].(*ast.CallExpr)
 					evoNode := node
@@ -84,7 +84,7 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 						evoNode, _ = evoNode.Obj.Decl.(*ast.AssignStmt).Rhs[0].(*ast.Ident)
 					}
 					toCall, ok = call.Args[0].(*ast.CallExpr)
-					// !ok -> splitted provider binding
+					// !ok -> split provider binding
 					if !ok {
 						// e.g something.ToProvider(Provider)
 						if _, isIdent := call.Args[0].(*ast.Ident); isIdent {

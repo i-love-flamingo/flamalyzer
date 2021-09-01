@@ -1,6 +1,6 @@
 package globals
 
-var DingoPkgPath = "flamingo.me/dingo"
+const DingoPkgPath = "flamingo.me/dingo"
 
 
 

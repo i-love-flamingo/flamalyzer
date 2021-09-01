@@ -82,7 +82,7 @@ func (*C) Configure(injector *dingo.Injector, otherType *otherType) {
 	injector.Bind((*I)(nil)).To(new(A))
 	injector.Bind((*I)(nil)).To(new(B)) // want "Incorrect Binding! \"\\*correct_interface_to_instance_binding.B\" must implement Interface \"\\*correct_interface_to_instance_binding.I\""
 
-	// check splitted bindings
+	// check split bindings
 	anInjector := injector.Bind(new(I))
 	anInjector.To(new(A))
 	anotherInjector := injector.Bind(new(I))

@@ -62,7 +62,7 @@ func providerFuncBoundToMap(f *G) interface{} {
 	return new(interface{})
 }
 
-func providerSplittedBinding(f *H) interface{} {
+func providerSplitBinding(f *H) interface{} {
 	return new(interface{})
 }
 
@@ -98,9 +98,9 @@ func (d *D) Configure(injector *dingo.Injector) bool {
 	injector.Bind(new(interface{})).ToProvider(providerFunc)
 	injector.BindMulti(new(interface{})).ToProvider(d.providerFuncWithSelector)
 	injector.BindMap(new(interface{}), "map").ToProvider(providerFuncBoundToMap)
-	// Test splitted Provider-Bindings
-	splittedBinding := injector.Bind(new(interface{}))
-	splittedBinding.ToProvider(providerSplittedBinding)
+	// Test split Provider-Bindings
+	splitBinding := injector.Bind(new(interface{}))
+	splitBinding.ToProvider(providerSplitBinding)
 	// Test SelectorExpression Provider-Bindings
 	injector.Bind(new(interface{})).ToProvider(selectorTestStruct.selectorProvider)
 	return true
