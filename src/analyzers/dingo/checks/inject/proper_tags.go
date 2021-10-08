@@ -1,10 +1,11 @@
 package inject
 
 import (
-	"flamingo.me/flamalyzer/src/analyzers/dingo/checks/bind"
-	ast "go/ast"
+	"go/ast"
 	"go/types"
 	"regexp"
+
+	"flamingo.me/flamalyzer/src/analyzers/dingo/checks/bind"
 
 	flanalysis "flamingo.me/flamalyzer/src/flamalyzer/analysis"
 	"golang.org/x/tools/go/analysis"
@@ -26,8 +27,12 @@ var TagAnalyzer = &analysis.Analyzer{
 	Requires: []*analysis.Analyzer{inspect.Analyzer, ReceiverAnalyzer, bind.Analyzer},
 }
 
-var bindCalls = map[string]bool{"Bind": true, "BindMulti": true, "BindMap": true}
-var toCalls = map[string]bool{"ToProvider": true}
+var (
+	bindCalls          = map[string]bool{"Bind": true, "BindMulti": true, "BindMap": true}
+	toCalls            = map[string]bool{"ToProvider": true}
+	expFindEmptyTag    = regexp.MustCompile("(`(inject:)[\"]\"`)|(\"(inject:)[`]`\")")
+	expFindTagWithInfo = regexp.MustCompile("(`(inject:)[\"].*\"`)|(\"(inject:)[`].*`\")")
+)
 
 // "inject tags" should be used for config injection only, otherwise inject method should be used.
 func runTagAnalyzer(pass *analysis.Pass) (interface{}, error) {
@@ -41,10 +46,6 @@ func runTagAnalyzer(pass *analysis.Pass) (interface{}, error) {
 		(*ast.TypeSpec)(nil),
 	}
 	checkFunction := func(n ast.Node) {
-		// Check regex at https://www.debuggex.com/#cheatsheet
-		expFindEmptyTag := regexp.MustCompile("(`(inject:)[\"]\"`)|(\"(inject:)[`]`\")")
-		expFindTagWithInfo := regexp.MustCompile("(`(inject:)[\"].*\"`)|(\"(inject:)[`].*`\")")
-
 		if structType, ok := n.(*ast.TypeSpec).Type.(*ast.StructType); ok {
 			// check structTypes for Tags
 			for _, f := range structType.Fields.List {
@@ -113,7 +114,6 @@ func isTypeUsedAsProvider(pass *analysis.Pass, structType *ast.StructType, bindi
 		default:
 			continue
 		}
-
 
 	}
 	return false
