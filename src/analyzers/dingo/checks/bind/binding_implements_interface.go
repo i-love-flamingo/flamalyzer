@@ -98,7 +98,7 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 						}
 					}
 
-					// TODO toProvider and bindings: selector expression Referenzierungen außerhalb des Packages
+					// TODO toProvider and bindings: selector expression references outside of package
 					bindFunc, _ = typeutil.Callee(pass.TypesInfo, bindCall.(*ast.CallExpr)).(*types.Func)
 					toFunc, _ = pass.TypesInfo.ObjectOf(call.Fun.(*ast.SelectorExpr).Sel).(types.Object)
 
