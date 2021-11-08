@@ -75,16 +75,12 @@ This analysis checks all import statements below the entry path that the provide
 Configuration example:
 
 ```yaml
+entrypaths: ["src/architecture"]
 groups:
-  entrypaths: [ "src/architecture" ]
-  infrastructure:
-    allowedDependencies: [ "infrastructure", "interfaces", "application", "domain" ]
-  interfaces:
-    allowedDependencies: [ "interfaces", "application", "domain" ]
-  application:
-    allowedDependencies: [ "application", "domain" ]
-  domain:
-    allowedDependencies: [ "domain" ]
+  infrastructure: ["infrastructure", "interfaces", "application", "domain"]
+  interfaces:     ["interfaces", "application", "domain"]
+  application:    ["application", "domain"]
+  domain:         ["domain"]
 ```
  
 ## Configuration 
@@ -97,25 +93,21 @@ The directory can be specified by `--configFolder=[PATH]`
 
 **config.yaml** example:
 ```yaml
-# Config of the Dingo-ReceiverAnalyzer
+# Config of the Dingo-Analyzer
 dingoAnalyzer:
   checkPointerReceiver: false
-  strictTagsAndFunctions: false
-  correctInterfaceToInstanceBinding: false
+  checkStrictTagsAndFunctions: false
+  checkCorrectInterfaceToInstanceBinding: false
 
-# Config of the dependencyConventions-ReceiverAnalyzer
-dependencyConventionsAnalyzer:
+# Config of the DependencyConventions-Analyzer
+architectureAnalyzer:
   entryPaths: []
-  dependencyConventions: true
+  checkDependencyConventions: true
   groups:
-    infrastructure:
-      allowedDependencies: ["infrastructure", "interfaces", "application", "domain"]
-    interfaces:
-      allowedDependencies: ["interfaces", "application", "domain"]
-    application:
-      allowedDependencies: ["application", "domain"]
-    domain:
-      allowedDependencies: ["domain"]
+    infrastructure: ["infrastructure", "interfaces", "application", "domain"]
+    interfaces:     ["interfaces", "application", "domain"]
+    application:    ["application", "domain"]
+    domain:         ["domain"]
 ```
 
 There is the possibility to **filter** the files which should be read in.
