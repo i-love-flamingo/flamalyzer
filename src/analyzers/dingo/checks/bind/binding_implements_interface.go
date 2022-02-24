@@ -1,6 +1,7 @@
 package bind
 
 import (
+	"flamingo.me/flamalyzer/src/analyzers/dingo/globals"
 	"fmt"
 	"go/ast"
 	"go/types"
@@ -19,9 +20,7 @@ var Analyzer = &analysis.Analyzer{
 	Run:      run,
 	Requires: []*analysis.Analyzer{inspect.Analyzer},
 }
-
 var dingoTypeDecl = "dingo.Injector"
-var dingoPkgPath = "flamingo.me/dingo"
 
 // This function checks if the given instance can be bound to the interface by the bind functions of Dingo.
 // example: injector.Bind(someInterface).To(mustImplementSomeInterface)
@@ -66,14 +65,14 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 				if firstFunc == nil || secondFunc == nil {
 					continue
 				}
-
 				// Make sure we are using "flamingo.me/dingo"
-				if firstFunc.Pkg().Path() != dingoPkgPath || secondFunc.Pkg().Path() != dingoPkgPath {
+				if firstFunc.Pkg().Path() != globals.DingoPkgPath || secondFunc.Pkg().Path() != globals.DingoPkgPath {
 					continue
 				}
 
 				// Make sure the called function is one that "binds" something "to" something
 				bindCalls := map[string]bool{"Bind": true, "BindMulti": true, "BindMap": true}
+				// TODO probably check for "toProvider" too?
 				toCalls := map[string]bool{"To": true, "ToInstance": true}
 				if ok := bindCalls[firstFunc.Name()] && toCalls[secondFunc.Name()]; ok {
 					bindType := pass.TypesInfo.Types[firstCall.Args[0]].Type
