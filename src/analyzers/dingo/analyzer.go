@@ -5,6 +5,7 @@ import (
 	"flamingo.me/dingo"
 	"flamingo.me/flamalyzer/src/analyzers"
 	"flamingo.me/flamalyzer/src/analyzers/dingo/checks/bind"
+	"flamingo.me/flamalyzer/src/analyzers/dingo/checks/configure"
 	"flamingo.me/flamalyzer/src/analyzers/dingo/checks/inject"
 	"flamingo.me/flamalyzer/src/flamalyzer/configuration"
 	"golang.org/x/tools/go/analysis"
@@ -15,18 +16,20 @@ type Module struct{}
 
 // The default properties which are used if there is no config-file
 var defaultProps = Props{
-	CheckPointerReceiver:                   true,
-	CheckStrictTagsAndFunctions:            true,
-	CheckCorrectInterfaceToInstanceBinding: true,
+	CheckPointerReceiver:            true,
+	CheckStrictTagsAndFunctions:     true,
+	CheckBindingImplementsInterface: true,
+	CheckConfigureHasReceiver:       true,
 }
 
 // Props of an analyzer which will be used by the config-module to match the entries
 // of a file to these variables. Is used to activate and deactivate checks, for example.
 type Props struct {
-	Name                                   string
-	CheckPointerReceiver                   bool
-	CheckStrictTagsAndFunctions            bool
-	CheckCorrectInterfaceToInstanceBinding bool
+	Name                            string
+	CheckPointerReceiver            bool
+	CheckStrictTagsAndFunctions     bool
+	CheckBindingImplementsInterface bool
+	CheckConfigureHasReceiver       bool
 }
 
 // The Analyzer holds a set of checks, uses the config and has props that can be defined to get read by the config
@@ -58,8 +61,11 @@ func (d *Analyzer) ChecksToExecute() []*analysis.Analyzer {
 	if d.props.CheckStrictTagsAndFunctions {
 		d.checks = append(d.checks, inject.TagAnalyzer)
 	}
-	if d.props.CheckCorrectInterfaceToInstanceBinding {
+	if d.props.CheckBindingImplementsInterface {
 		d.checks = append(d.checks, bind.Analyzer)
+	}
+	if d.props.CheckConfigureHasReceiver {
+		d.checks = append(d.checks, configure.ReceiverAnalyzer)
 	}
 	return d.checks
 }

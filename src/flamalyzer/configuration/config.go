@@ -101,9 +101,11 @@ func (c *Config) LoadConfigFromFiles() {
 
 	// Read all config-files into one byte stream
 	var inputStream []byte
+	var cfgFileFound = false
 	for _, file := range files {
 		// Name must contain a flag
 		if strings.Contains(file.Name(), *c.configSuffixFlag) && strings.HasSuffix(file.Name(), ".yaml") {
+			cfgFileFound = true
 			msg := "reading Config-File: `" + file.Name() + "`"
 			log.Println(msg, c.IsDebug())
 
@@ -117,6 +119,9 @@ func (c *Config) LoadConfigFromFiles() {
 				inputStream = append(inputStream, fileContent...)
 			}
 		}
+	}
+	if !cfgFileFound {
+		log.Println("No Config-File(s) found.", c.IsDebug())
 	}
 	// Extract the rawData into the configProps
 	err = yaml.Unmarshal(inputStream, c.props)

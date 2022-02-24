@@ -11,6 +11,7 @@ import (
 )
 
 // ReceiverAnalyzer checks if an inject-function is bound to a pointer-receiver
+// returns all inject functions as a resultType
 var ReceiverAnalyzer = &analysis.Analyzer{
 	Name:       "checkPointerReceiver",
 	Doc:        "check if the inject method is bound to a pointer receiver",

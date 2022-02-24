@@ -1,52 +1,56 @@
 package bind
 
 import (
+	"flamingo.me/flamalyzer/src/analyzers/dingo/checks/configure"
+	"flamingo.me/flamalyzer/src/analyzers/dingo/globals"
 	"fmt"
 	"go/ast"
 	"go/types"
+	"reflect"
 
 	flanalysis "flamingo.me/flamalyzer/src/flamalyzer/analysis"
 	"golang.org/x/tools/go/analysis"
-	"golang.org/x/tools/go/analysis/passes/inspect"
-	"golang.org/x/tools/go/ast/inspector"
 	"golang.org/x/tools/go/types/typeutil"
 )
 
 // Analyzer checks if a dingo binding to an interface really implements the interface
+// Returns all dingo-binding declarations
 var Analyzer = &analysis.Analyzer{
-	Name:     "checkCorrectInterfaceToInstanceBinding",
-	Doc:      "check if the Binding of an Interface to an Implementation with the Bind() -Function is possible",
-	Run:      run,
-	Requires: []*analysis.Analyzer{inspect.Analyzer},
+	Name:       "checkBindingImplementsInterface",
+	Doc:        "check if the Binding of an Interface to an Implementation with the Bind() -Function is possible",
+	Run:        run,
+	Requires:   []*analysis.Analyzer{configure.ReceiverAnalyzer},
+	ResultType: reflect.TypeOf(*new(DingoBindings)),
 }
+var dingoBindings DingoBindings
 
-var dingoTypeDecl = "dingo.Injector"
-var dingoPkgPath = "flamingo.me/dingo"
+// can be DingoInstanceBinding or DingoProviderBinding
+type DingoBindings []interface{}
+
+// Todo better use getters?
+
+type DingoInstanceBinding struct {
+	BindCall *ast.CallExpr
+	ToCall   *ast.CallExpr
+	BindFunc types.Object
+	ToFunc   types.Object
+}
+type DingoProviderBinding struct {
+	BindCall *ast.CallExpr
+	ToCall   *ast.Ident
+	BindFunc types.Object
+	ToFunc   types.Object
+}
 
 // This function checks if the given instance can be bound to the interface by the bind functions of Dingo.
 // example: injector.Bind(someInterface).To(mustImplementSomeInterface)
 func run(pass *analysis.Pass) (interface{}, error) {
-	input := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
-	nodeFilter := []ast.Node{
-		(*ast.FuncDecl)(nil),
-	}
+	configureFunctions := pass.ResultOf[configure.ReceiverAnalyzer].(*configure.FunctionDeclarations).GetAll()
 
-	checkFunction := func(n ast.Node) {
-		funcdecl := n.(*ast.FuncDecl)
-
-		// Make sure we check functions with "*dingo.Injector" in the parameters
-		for _, param := range funcdecl.Type.Params.List {
-			if param, ok := param.Type.(*ast.StarExpr); ok {
-				if param, ok := param.X.(*ast.SelectorExpr); ok {
-					if isSelectorExprTypeOf(param, dingoTypeDecl) {
-						checkBlockStatmenetForCorrectBindings(funcdecl.Body, pass)
-					}
-				}
-			}
-		}
+	for _, f := range configureFunctions {
+		checkBlockStatmenetForCorrectBindings(f.Body, pass)
 	}
-	input.Preorder(nodeFilter, checkFunction)
-	return nil, nil
+	return dingoBindings, nil
 }
 
 // Checks a blockStatement like a function body for correct bindings
@@ -55,29 +59,70 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 		if exp, ok := stmt.(*ast.ExprStmt); ok {
 			if call, ok := exp.X.(*ast.CallExpr); ok {
 
-				// make sure we have a concatenated function
-				firstCall, _ := call.Fun.(*ast.SelectorExpr).X.(*ast.CallExpr)
-				secondCall := call
-				if firstCall == nil {
-					continue
-				}
-				firstFunc, _ := typeutil.Callee(pass.TypesInfo, firstCall).(*types.Func)
-				secondFunc, _ := typeutil.Callee(pass.TypesInfo, secondCall).(*types.Func)
-				if firstFunc == nil || secondFunc == nil {
+				var bindCall interface{}
+				var toCall interface{}
+				var bindFunc types.Object
+				var toFunc types.Object
+
+				switch node := call.Fun.(*ast.SelectorExpr).X.(type) {
+				// if it is a concatenated binding
+				case *ast.CallExpr:
+					bindCall = node
+					toCall = call
+					bindFunc, _ = typeutil.Callee(pass.TypesInfo, bindCall.(*ast.CallExpr)).(*types.Func)
+					toFunc, _ = typeutil.Callee(pass.TypesInfo, toCall.(*ast.CallExpr)).(*types.Func)
+					// Make sure we are using "flamingo.me/dingo"
+					if bindFunc.Pkg().Path() != globals.DingoPkgPath || toFunc.Pkg().Path() != globals.DingoPkgPath {
+						continue
+					}
+				// if it is a split binding
+				case *ast.Ident:
+					bindCall, ok = node.Obj.Decl.(*ast.AssignStmt).Rhs[0].(*ast.CallExpr)
+					evoNode := node
+					for !ok {
+						bindCall, ok = evoNode.Obj.Decl.(*ast.AssignStmt).Rhs[0].(*ast.Ident).Obj.Decl.(*ast.AssignStmt).Rhs[0].(*ast.CallExpr)
+						evoNode, _ = evoNode.Obj.Decl.(*ast.AssignStmt).Rhs[0].(*ast.Ident)
+					}
+					toCall, ok = call.Args[0].(*ast.CallExpr)
+					// !ok -> split provider binding
+					if !ok {
+						// e.g something.ToProvider(Provider)
+						if _, isIdent := call.Args[0].(*ast.Ident); isIdent {
+							toCall = call.Args[0].(*ast.Ident)
+
+						// if selector expression e.g something.ToProvider(selector.Provider)
+						} else if _, isSelectorExpr := call.Args[0].(*ast.SelectorExpr); isSelectorExpr {
+							toCall = call.Args[0].(*ast.SelectorExpr).Sel
+						} else{
+							continue
+						}
+					}
+
+					// TODO toProvider and bindings: selector expression references outside of package
+					bindFunc, _ = typeutil.Callee(pass.TypesInfo, bindCall.(*ast.CallExpr)).(*types.Func)
+					toFunc, _ = pass.TypesInfo.ObjectOf(call.Fun.(*ast.SelectorExpr).Sel).(types.Object)
+
+					// Make sure we are using "flamingo.me/dingo"
+					if bindFunc.Pkg().Path() != globals.DingoPkgPath {
+						continue
+					}
+				default:
 					continue
 				}
 
-				// Make sure we are using "flamingo.me/dingo"
-				if firstFunc.Pkg().Path() != dingoPkgPath || secondFunc.Pkg().Path() != dingoPkgPath {
+				if bindFunc == nil || toFunc == nil {
 					continue
 				}
+				// Now we have potential function bindings add them to stack if they have the correct name (BindCalls & toCalls)
+				fillReturnData(bindCall.(*ast.CallExpr), toCall, bindFunc, toFunc)
 
 				// Make sure the called function is one that "binds" something "to" something
 				bindCalls := map[string]bool{"Bind": true, "BindMulti": true, "BindMap": true}
+				// TODO probably check for "toProvider" too?
 				toCalls := map[string]bool{"To": true, "ToInstance": true}
-				if ok := bindCalls[firstFunc.Name()] && toCalls[secondFunc.Name()]; ok {
-					bindType := pass.TypesInfo.Types[firstCall.Args[0]].Type
-					toType := pass.TypesInfo.Types[secondCall.Args[0]].Type
+				if ok := bindCalls[bindFunc.Name()] && toCalls[toFunc.Name()]; ok {
+					bindType := pass.TypesInfo.Types[bindCall.(*ast.CallExpr).Args[0]].Type
+					toType := pass.TypesInfo.Types[toCall.(*ast.CallExpr).Args[0]].Type
 					// If struct literal is used, get the toType into the correct format
 					_, ok := toType.(*types.Named)
 					if ok {
@@ -89,33 +134,49 @@ func checkBlockStatmenetForCorrectBindings(block *ast.BlockStmt, pass *analysis.
 						to := toType.(*types.Pointer).Elem().Underlying()
 						if !types.Implements(toType, what) && !types.Implements(to, what) {
 							message := fmt.Sprintf("Incorrect Binding! %q must implement Interface %q", toType.Underlying().String(), bindType.Underlying().String())
-							flanalysis.Report(pass, message, secondCall.Args[0])
+							flanalysis.Report(pass, message, toCall.(*ast.CallExpr).Args[0])
 						}
 					case *types.Signature:
 						if !types.AssignableTo(toType, what) {
 							message := fmt.Sprintf("Incorrect Binding! %q must have Signature of %q", toType.String(), what.String())
-							flanalysis.Report(pass, message, secondCall.Args[0])
+							flanalysis.Report(pass, message, toCall.(*ast.CallExpr).Args[0])
 						}
 					default:
 						if !types.AssignableTo(toType, bindType) {
 							message := fmt.Sprintf("Incorrect Binding! %q must be assignable to %q", toType.String(), bindType.String())
-							flanalysis.Report(pass, message, secondCall.Args[0])
+							flanalysis.Report(pass, message, toCall.(*ast.CallExpr).Args[0])
 						}
 					}
 				}
 			}
+
 		}
 	}
 }
 
-// checks if a given selectorExpression matches the given type (as string)
-// example: "dingo.Injector"
-func isSelectorExprTypeOf(expr *ast.SelectorExpr, typ string) bool {
-	if n, ok := expr.X.(*ast.Ident); ok {
-		fullName := n.Name + "." + expr.Sel.Name
-		if fullName == typ {
-			return true
+func fillReturnData(bindCall *ast.CallExpr, toCall interface{}, bindFunc types.Object, toFunc types.Object) {
+	bindCalls := map[string]bool{"Bind": true, "BindMulti": true, "BindMap": true}
+	toCalls := map[string]bool{"To": true, "ToInstance": true, "ToProvider": true}
+
+	if ok := bindCalls[bindFunc.Name()] && toCalls[toFunc.Name()]; ok {
+		switch c := toCall.(type) {
+		case *ast.CallExpr:
+			var binding = DingoInstanceBinding{
+				BindCall: bindCall,
+				ToCall:   c,
+				BindFunc: bindFunc,
+				ToFunc:   toFunc,
+			}
+			dingoBindings = append(dingoBindings, binding)
+		case *ast.Ident:
+			var binding = DingoProviderBinding{
+				BindCall: bindCall,
+				ToCall:   c,
+				BindFunc: bindFunc,
+				ToFunc:   toFunc,
+			}
+			dingoBindings = append(dingoBindings, binding)
 		}
 	}
-	return false
+
 }

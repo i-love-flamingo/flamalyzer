@@ -1,16 +1,18 @@
 package proper_inject_tags
 
+import "flamingo.me/dingo"
+
 type A struct {
 	X string `inject:""` // want `Empty Inject-Tags are not allowed! Add more specific naming or use the Inject function for non configuration injections`
 }
 
 type B struct {
-	X bool `inject:"config:flag,optional"` // want `Injections should be referenced in the Inject function! References in the Inject-Function should be found in the same package!`
+	X bool `inject:"config:flag,optional"` // want `Injections should be referenced in the Inject/Provider-Function! References in the Inject/Provider-Function should be found in the same package!`
 }
 
 type C struct {
-	X bool `inject:"err:flag,optional"` // want `Injections should be referenced in the Inject function! References in the Inject-Function should be found in the same package!`
-	Y *A   `inject:"annotated"`         // want `Injections should be referenced in the Inject function! References in the Inject-Function should be found in the same package!`
+	X bool `inject:"err:flag,optional"` // want `Injections should be referenced in the Inject/Provider-Function! References in the Inject/Provider-Function should be found in the same package!`
+	Y *A   `inject:"annotated"`         // want `Injections should be referenced in the Inject/Provider-Function! References in the Inject/Provider-Function should be found in the same package!`
 }
 
 type Mapper interface {
@@ -18,9 +20,25 @@ type Mapper interface {
 }
 
 type D struct {
-	servie  *A
+	service *A
 	isDebug bool
 	mapper  Mapper
+}
+
+type E struct {
+	service *A `inject:"these:should:be:allowed:since:referenced:in:provider"` // this is allowed since this type referenced in the configure method as provider
+}
+
+type F struct {
+	service *A `inject:"these:should:also:be:allowed:since:referenced:in:provider"` // this is allowed since this type referenced in the configure method as provider
+}
+
+type G struct {
+	service *A `inject:"these:should:also:be:allowed:since:referenced:in:provider:2"` // this is allowed since this type referenced in the configure method as provider
+}
+
+type H struct {
+	service *A `inject:"these:should:also:be:allowed:since:referenced:in:provider:3"` // this is allowed since this type referenced in the configure method as provider
 }
 
 type specialInjectCfg struct {
@@ -32,19 +50,58 @@ type Z struct {
 	X bool `inject:""` // want `Empty Inject-Tags are not allowed! Add more specific naming or use the Inject function for non configuration injections`
 }
 
+func providerFunc(e *E) interface{} {
+	return new(interface{})
+}
+
+func (d *D) providerFuncWithSelector(e *E, f *F) interface{} {
+	return new(interface{})
+}
+
+func providerFuncBoundToMap(f *G) interface{} {
+	return new(interface{})
+}
+
+func providerSplitBinding(f *H) interface{} {
+	return new(interface{})
+}
+
+type selectorTest struct {
+	X bool `inject:"selector:test"`
+}
+
+type selectorTestStruct struct {
+}
+
+func (b selectorTestStruct) selectorProvider(e *selectorTest) interface{} {
+	return new(interface{})
+}
+
 func (d *D) Inject(
 	service *A,
 	z *Z,
 	cfg *specialInjectCfg,
 	annotated *struct {
-		Mapper Mapper `inject:"my-annotations,optional"` // this is allowed as it is an argument of the Inject function
-	},
+	Mapper Mapper `inject:"my-annotations,optional"` // this is allowed as it is an argument of the Inject function
+},
 ) *D {
 
-	d.servie = service
+	d.service = service
 	if cfg != nil {
 		d.isDebug = cfg.IsDebug
 	}
 
 	return d
+}
+
+func (d *D) Configure(injector *dingo.Injector) bool {
+	injector.Bind(new(interface{})).ToProvider(providerFunc)
+	injector.BindMulti(new(interface{})).ToProvider(d.providerFuncWithSelector)
+	injector.BindMap(new(interface{}), "map").ToProvider(providerFuncBoundToMap)
+	// Test split Provider-Bindings
+	splitBinding := injector.Bind(new(interface{}))
+	splitBinding.ToProvider(providerSplitBinding)
+	// Test SelectorExpression Provider-Bindings
+	injector.Bind(new(interface{})).ToProvider(selectorTestStruct.selectorProvider)
+	return true
 }

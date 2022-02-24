@@ -9,4 +9,5 @@ architectureAnalyzer:
 dingoAnalyzer:
   checkPointerReceiver: true
   checkStrictTagsAndFunctions: true
-  checkCorrectInterfaceToInstanceBinding: true
+  checkBindingImplementsInterface: true
+  checkConfigureHasReceiver: true

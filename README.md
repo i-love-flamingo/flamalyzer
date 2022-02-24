@@ -27,7 +27,7 @@ To define the path to your config-files, the default is `./.flamalyzer`
 ```
 
 To define a string which must occur in the config-files name which should be loaded 
-(useful if you have different files for different use-cases)
+(useful if you have different files for different use-cases). This only works in combination with ```--configFolder```
 
 ```shell
 --debugFlamalyzer

@@ -5,7 +5,8 @@ debug: false
 dingoAnalyzer:
   checkPointerReceiver: false
   checkStrictTagsAndFunctions: false
-  checkCorrectInterfaceToInstanceBinding: false
+  checkBindingImplementsInterface: false
+  checkConfigureHasReceiver: false
 
 # Config of the DependencyConventions-Analyzer
 architectureAnalyzer:
